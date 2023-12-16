@@ -90,7 +90,7 @@ def download_image(url):
         return None
     return Image.open(BytesIO(response.content)).convert("RGB")
 
-def encode_images(model, preprocess, device):
+def encode_images(target_images, model, preprocess, device):
     with torch.no_grad():
         curr_images = [preprocess(target_image).unsqueeze(0) for target_image in target_images]
         curr_images = torch.concatenate(curr_images).to(device)
@@ -100,7 +100,7 @@ def encode_images(model, preprocess, device):
 
 def get_target_feature(model, preprocess, tokenizer_funct, device, target_images=None, target_prompts=None):
     if target_images is not None:
-        all_target_features = encode_images(model, preprocess, device)
+        all_target_features = encode_images(target_images, model, preprocess, device)
     else:
         texts = tokenizer_funct(target_prompts).to(device)
         all_target_features = model.encode_text(texts)
@@ -292,7 +292,7 @@ def optimize_prompt_loop_with_sd_guidance(
                 height=height,
                 width=width,
             )
-            sd_target_features = encode_images(model, preprocess, device)
+            sd_target_features = encode_images(sd_images, model, preprocess, device)
 
         
         # tmp_embeds = copy.deepcopy(prompt_embeds)

@@ -8,5 +8,12 @@
     "print_step": 100,
     "batch_size": 1,
     "clip_model": "ViT-H-14",
-    "clip_pretrain": "laion2b_s32b_b79k"
+    "clip_pretrain": "laion2b_s32b_b79k",
+    "sd_args": {
+        "alpha": 0.0,
+        "guidance_scale": 9,
+        "num_inference_steps": 10,
+        "height": 512,
+        "width": 512
+    }
 }

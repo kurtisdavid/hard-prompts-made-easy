@@ -257,7 +257,17 @@ def optimize_prompt_loop_with_sd_guidance(
     best_loss = 1e30 * args.loss_weight
     best_text = ""
 
+    def sigmoid(x):
+        center = opt_iters / 2
+        temp = opt_iters / 10
+        return 1/(1 + np.exp(-(1/temp)*(x-center))) 
+    
     for step in range(opt_iters):
+        if isinstance(alpha, float):
+            curr_alpha = alpha
+        elif alpha=="sigmoid":
+            curr_alpha = sigmoid(step)
+
         # randomly sample sample images and get features
         if batch_size is None:
             target_features = all_target_features
@@ -291,7 +301,7 @@ def optimize_prompt_loop_with_sd_guidance(
                 num_inference_steps=num_inference_steps,
                 height=height,
                 width=width,
-            )
+            ).images
             sd_target_features = encode_images(sd_images, model, preprocess, device)
 
         
@@ -315,7 +325,7 @@ def optimize_prompt_loop_with_sd_guidance(
         loss_sd = 1 - cosim_scores_sd.mean()
         
         # Combine loss terms for final loss.
-        loss = (1 - alpha) * loss + (alpha) * loss_sd
+        loss = (1 - curr_alpha) * loss + (curr_alpha) * loss_sd
         loss = loss * args.loss_weight
 
         
@@ -330,21 +340,20 @@ def optimize_prompt_loop_with_sd_guidance(
 
         if print_step is not None and (step % print_step == 0 or step == opt_iters-1):
             per_step_message = f"step: {step}, lr: {curr_lr}"
-            if not print_new_best:
-                per_step_message = f"\n{per_step_message}, cosim: {universal_cosim_score:.3f}, cosim_sd_guidance: {cosim_scores_sd:.3f} text: {decoded_text}"
+            per_step_message = f"\n{per_step_message}, cosim: {universal_cosim_score:.3f}, cosim_sd_guidance: {cosim_scores_sd:.3f} text: {decoded_text}"
             print(per_step_message)
 
         if loss.item() < best_loss:
             best_loss = loss.item()
             best_text = decoded_text
             if print_new_best:
-                print(f"new best loss: {best_sim}")
+                print(f"new best loss: {best_loss}")
                 print(f"new best prompt: {best_text}")
 
 
     if print_step is not None:
         print()
-        print(f"best cosine sim: {best_sim}")
+        print(f"best loss: {best_loss}")
         print(f"best prompt: {best_text}")
 
     return best_text
